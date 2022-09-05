@@ -3,9 +3,11 @@ import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.*;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  
 @Configuration
@@ -31,6 +33,9 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
             .and()
             .formLogin().permitAll()
             .and()
-            .logout().permitAll();     
+            .logout().permitAll().and()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
+    		.and() 
+    		.csrf().disable() .httpBasic(Customizer.withDefaults());;     
     }
 }
