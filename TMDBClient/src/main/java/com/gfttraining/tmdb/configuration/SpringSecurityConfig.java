@@ -27,15 +27,19 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     }
  
     @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
-            .anyRequest().authenticated()
-            .and()
-            .formLogin().permitAll()
-            .and()
-            .logout().permitAll().and()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
-    		.and() 
-    		.csrf().disable() .httpBasic(Customizer.withDefaults());;     
+    public void configure(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity
+                .authorizeRequests()
+                .antMatchers("/h2-console/**").permitAll()
+                .and().csrf().ignoringAntMatchers("/h2-console/**")
+                .and().headers().frameOptions().sameOrigin()
+                .and().authorizeRequests()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .csrf().disable()          
+                .httpBasic();
     }
 }
