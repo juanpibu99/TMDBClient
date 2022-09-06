@@ -20,11 +20,14 @@ public class sqlquerys {
 	private static final String UPDATE = "UPDATE user_movie SET favorite = ?, personal_rating = ?, notes = ? WHERE userid = ? AND movieid = ?;";
 	
 	public void insertRecord(User_movie user_movie,int id_movie,int user_id) throws SQLException {
-        System.out.println(INSERT_USERS_SQL);
-        // Step 1: Establishing a Connection
+      
+       
         try (Connection connection = H2JDBCUtils.getConnection();
-            // Step 2:Create a statement using connection object
+          
             PreparedStatement preparedStatement = connection.prepareStatement(INSERT_USERS_SQL)) {
+        	 if(user_movie.getPersonal_rating()<0 || user_movie.getPersonal_rating()>5) {
+                 throw new SQLException("Bad personal rating");
+             }
             preparedStatement.setInt(1, user_id );
             preparedStatement.setInt(2,id_movie);
             preparedStatement.setBoolean(3, user_movie.isFavourite());
@@ -32,28 +35,27 @@ public class sqlquerys {
             preparedStatement.setString(5, user_movie.getNotes());
 
             System.out.println(preparedStatement);
-            // Step 3: Execute the query or update query
+      
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
 
-            // print SQL exception information
+           System.out.println(e.getMessage());
             
         }
 
-        // Step 4: try-with-resource statement will auto close the connection.
+        
     }
 	
 	public User_movie getUser_movieByID(int id_movie,int user_id) throws SQLException {
         System.out.println(QUERY);
-        // Step 1: Establishing a Connection
+     
         try (Connection connection = H2JDBCUtils.getConnection();
 
-                // Step 2:Create a statement using connection object
                 PreparedStatement preparedStatement = connection.prepareStatement(QUERY);) {
+        	
                 preparedStatement.setInt(1, user_id);
                 preparedStatement.setInt(2, id_movie);
-                System.out.println(preparedStatement);
-                // Step 3: Execute the query or update query
+           
                 ResultSet rs = preparedStatement.executeQuery();
                 if(!rs.next()) {
                 	return null;
@@ -71,14 +73,14 @@ public class sqlquerys {
                          user_movie.setPersonal_rating(personal_rating);
                 	 return user_movie;
                 }
-                // Step 4: Process the ResultSet object.
+        
                
             } catch (SQLException e) {
-             System.out.println("aa");
+             System.out.println(e.getMessage());
             }
         return null;
 
-        // Step 4: try-with-resource statement will auto close the connection.
+ 
     }
 	
 	  public int retrieveUserId(String userName) throws SQLException {
@@ -99,7 +101,10 @@ public class sqlquerys {
 	  public static void updateRecord(User_movie user_movie, int id_movie) throws SQLException {
           try (Connection connection = H2JDBCUtils.getConnection();
                   PreparedStatement preparedStatement = connection.prepareStatement(UPDATE)) {
-              //"UPDATE user_movie SET favorite = ?, personal_rating = ?, notes = ? WHERE userid = ? AND movieid = ?;";
+        	  if(user_movie.getPersonal_rating()<0 || user_movie.getPersonal_rating()>5) {
+                  throw new SQLException("Bad personal rating");
+              }
+             
               preparedStatement.setInt(1,(user_movie.isFavourite()?1:0));
               preparedStatement.setInt(2, user_movie.getPersonal_rating());
               preparedStatement.setString(3, user_movie.getNotes());

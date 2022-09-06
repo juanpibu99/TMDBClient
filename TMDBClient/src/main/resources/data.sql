@@ -7,8 +7,6 @@ create table users(
     primary key (userid)
 );
 
-
-
 create table user_movie(
                            userid int not null,
                            movieid int not null,

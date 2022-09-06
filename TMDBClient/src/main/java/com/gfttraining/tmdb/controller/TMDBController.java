@@ -27,6 +27,8 @@ import org.springframework.web.client.RestTemplate;
 import com.gfttraining.tmdb.h2utils.H2JDBCUtils;
 import com.gfttraining.tmdb.model.User_movie;
 import com.gfttraining.tmdb.sqlquerys.sqlquerys;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @RestController
 @RequestMapping (value = "api")
@@ -67,66 +69,118 @@ public class TMDBController {
 	}
 	
 	@GetMapping("/movie/{movie_id}")
-	public ResponseEntity<String> getMovie(@PathVariable int movie_id) {
-		String urlString="https://api.themoviedb.org/3/movie/"+movie_id+"?language=es-ES";	
-		String currentUserName = "";
+    public ResponseEntity<JsonObject> getMovie(@PathVariable int movie_id) throws SQLException {
+        String urlString="https://api.themoviedb.org/3/movie/"+movie_id+"?language=es-ES";
+        
+        ResponseEntity<String> responseEntity = inicializator(urlString);
+        String jsonResponse = responseEntity.getBody();
         
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (!(authentication instanceof AnonymousAuthenticationToken)) {
-        	try {
-            currentUserName = authentication.getName();
-            System.out.println(currentUserName);
-            int userId = sqlquerys.retrieveUserId(currentUserName);
-            System.out.println(userId);
-        	
-			User_movie user_movie= sqlquerys.getUser_movieByID(movie_id,userId);
-			
-			if (user_movie !=null) {
-				return inicializator(urlString);
-			}
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+        String currentUserName = authentication.getName();
+        int userId = sqlquerys.retrieveUserId(currentUserName);
+        User_movie userMovie = sqlquerys.getUser_movieByID(movie_id, userId);
+        
+        if(userMovie == null) {
+             String json = jsonResponse.substring(0, jsonResponse.length()-1).concat(",\"favourite\": \"false\", \"personal_rating\":\"null\", \"notes\": \"null\"}");
+        
+            JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
+            
+            return responseEntity.ok(jsonObject);
         }
-	
-		return inicializator(urlString);
-	}
+        else {
+            String json = jsonResponse.substring(0, jsonResponse.length()-1).concat(",\"favourite\": \"" + userMovie.isFavourite() + "\", \"personal_rating\":\"" + userMovie.getPersonal_rating() + "\", \"notes\": \"" + userMovie.getNotes() + "\"}");
+            
+            JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
+            return responseEntity.ok(jsonObject);
+        }
+        
+         }
+        return responseEntity.ok(new JsonParser().parse("{}").getAsJsonObject());
+    }
 	
 	@PatchMapping("/movie/{movie_id}")
-    public ResponseEntity<String> postMovie(@PathVariable int movie_id, @RequestBody User_movie user_movie) throws SQLException {
-		String urlString="https://api.themoviedb.org/3/movie/"+movie_id+"?language=es-ES";	
-        
-        String currentUserName = "";
-        
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<JsonObject> postMovie(@PathVariable int movie_id, @RequestBody User_movie user_movie)
+            throws SQLException {
+		String urlString="https://api.themoviedb.org/3/movie/"+movie_id+"?language=es-ES";
+
+
+
+       String currentUserName = "";
+        int userId = 0;
+
+
+
+       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (!(authentication instanceof AnonymousAuthenticationToken)) {
 
 
 
            currentUserName = authentication.getName();
             System.out.println(currentUserName);
-            int userId = sqlquerys.retrieveUserId(currentUserName);
+            userId = sqlquerys.retrieveUserId(currentUserName);
             user_movie.setUserid(userId);
             try {
-                
-                User_movie user = sqlquerys.getUser_movieByID(movie_id, userId);
-                
-                if(user == null) {
-                	sqlquerys.insertRecord(user_movie,movie_id,userId);
+
+
+
+               User_movie user = sqlquerys.getUser_movieByID(movie_id, userId);
+
+
+
+               if (user == null) {
+            	   sqlquerys.insertRecord(user_movie, movie_id,userId);
+                } else {
+                	sqlquerys.updateRecord(user_movie, movie_id);
                 }
-                else {
-                	sqlquerys.updateRecord(user_movie,movie_id);
-                }               
-   
-            } catch (SQLException e) {
-                
-                e.printStackTrace();
+
+
+
+           } catch (SQLException e) {
+
+
+
+               e.printStackTrace();
             }
         }
-        
-        return inicializator(urlString);
-    }
+
+
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+		headers.setBearerAuth("eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZmJiZDdhYmNjZTkxYmRkNjI4ZWY1NjlkNDAwYzhlOSIsInN1YiI6IjYzMTVhYzQ2ZmFiM2ZhMDA4NGMyMWQ1MCIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Z7IAUwTmrGOfFwCMOkFBVBKWBGZV22pSroBUPDVIfcg");
+		HttpEntity request = new HttpEntity(headers);
+       User_movie userMovie = sqlquerys.getUser_movieByID(movie_id, userId);
+        ResponseEntity<String> responseEntity = restTemplate.exchange(urlString, HttpMethod.GET, request,
+                String.class);
+        String jsonResponse = responseEntity.getBody();
+
+
+
+       if (userMovie == null) {
+            String json = jsonResponse.substring(0, jsonResponse.length() - 1)
+                    .concat(",\"favourite\": \"false\", \"personal_rating\":\"null\", \"notes\": \"null\"}");
+
+
+
+           JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
+
+
+
+           return responseEntity.ok(jsonObject);
+        } else {
+            String json = jsonResponse.substring(0, jsonResponse.length() - 1)
+                    .concat(",\"favourite\": \"" + userMovie.isFavourite() + "\", \"personal_rating\":\""
+                            + userMovie.getPersonal_rating() + "\", \"notes\": \"" + userMovie.getNotes() + "\"}");
+
+
+
+           JsonObject jsonObject = new JsonParser().parse(json).getAsJsonObject();
+            return responseEntity.ok(jsonObject);
+        }
+
+
+
+   }
 	
 	
 	@GetMapping("/movie/{movie_id}/credits")
